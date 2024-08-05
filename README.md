@@ -1,6 +1,12 @@
 # vps-bench
 Bench Script based on https://github.com/teddysun/across/blob/master/bench.sh
 
+## Version: 2024v1
+
+*Sample run:*
+
+`wget -qO- jurkiewicz.tech/vps-bench.sh | bash`
+
 ---
 
 ## Changes made:
