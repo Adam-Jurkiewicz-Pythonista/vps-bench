@@ -7,6 +7,8 @@ Bench Script based on https://github.com/teddysun/across/blob/master/bench.sh
 
 `$ wget -qO- jurkiewicz.tech/vps-bench.sh | bash`
 
+* added parameter `"nearest"` - then script check additional 3 nearest servers from speedtest; without ckecks only default `Speedtest.net`
+
 ---
 
 ## Changes made:
