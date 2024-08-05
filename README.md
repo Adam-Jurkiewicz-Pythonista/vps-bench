@@ -3,9 +3,9 @@ Bench Script based on https://github.com/teddysun/across/blob/master/bench.sh
 
 ## Version: 2024v1
 
-*Sample run:*
+*Sample run - copy and paste to Terminal command without dollar sign:*
 
-`wget -qO- jurkiewicz.tech/vps-bench.sh | bash`
+`$ wget -qO- jurkiewicz.tech/vps-bench.sh | bash`
 
 ---
 
