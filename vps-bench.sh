@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 #
-# Description: A Bench Script by Teddysun
+# Description: A Bench Script by Teddysun 
+# changes made by Adam Jurkiewicz
 #
 # Copyright (C) 2015 - 2023 Teddysun <i@teddysun.com>
 # Thanks: LookBack <admin@dwhd.org>
 # URL: https://teddysun.com/444.html
 # https://github.com/teddysun/across/blob/master/bench.sh
+#
+#
+# changes made by Adam Jurkiewicz <adam.jurkiewicz.pythonista@proton.me> 2024 year
+# URL: https://jurkiewicz.tech
+# https://github.com/Adam-Jurkiewicz-Pythonista/vps-bench/blob/main/vps-bench.sh
 #
 trap _exit INT QUIT TERM
 
@@ -39,7 +45,7 @@ _exists() {
 }
 
 _exit() {
-    _red "\nThe script has been terminated. Cleaning up files...\n"
+    _red "Break - clean temporary files...\n"
     # clean up
     rm -fr speedtest.tgz speedtest-cli benchtest_*
     exit 1
@@ -49,6 +55,7 @@ get_opsy() {
     [ -f /etc/redhat-release ] && awk '{print $0}' /etc/redhat-release && return
     [ -f /etc/os-release ] && awk -F'[= "]' '/PRETTY_NAME/{print $3,$4,$5}' /etc/os-release && return
     [ -f /etc/lsb-release ] && awk -F'[="]+' '/DESCRIPTION/{print $2}' /etc/lsb-release && return
+    echo -n "Not supported OS - EXIT!" 
 }
 
 next() {
@@ -74,20 +81,18 @@ speed_test() {
 }
 
 speed() {
+    # checking nearest 3 servers
+    output=$(./speedtest-cli/speedtest -L | tail -10 | head -3)
+    nearest_servers=$(echo "$output" | tail -10 | head -3 | awk '{print $1}')
+    _blue "Testing default Speedtest.net and nearest 3 servers: \n"
+    printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
     speed_test '' 'Speedtest.net'
-    speed_test '21541' 'Los Angeles, US'
-    speed_test '43860' 'Dallas, US'
-    speed_test '40879' 'Montreal, CA'
-    speed_test '24215' 'Paris, FR'
-    speed_test '28922' 'Amsterdam, NL'
-    speed_test '24447' 'Shanghai, CN'
-    speed_test '5530' 'Chongqing, CN'
-    speed_test '60572' 'Guangzhou, CN'
-    speed_test '32155' 'Hongkong, CN'
-    speed_test '23647' 'Mumbai, IN'
-    speed_test '13623' 'Singapore, SG'
-    speed_test '21569' 'Tokyo, JP'
+    for server in $nearest_servers; do
+        name=$(echo "$output" | grep $server | awk '{print $2, $3}')
+        speed_test $server $name
+    done
 }
+
 
 io_test() {
     (LANG=C dd if=/dev/zero of=benchtest_$$ bs=512k count="$1" conv=fdatasync && rm -f benchtest_$$) 2>&1 | awk -F '[,，]' '{io=$NF} END { print io}' | sed 's/^[ \t]*//;s/[ \t]*$//'
@@ -195,11 +200,15 @@ check_virt() {
 }
 
 ipv4_info() {
-    local org city country region
+    local hostname org city country region
+    hostname="$(wget -q -T10 -O- ipinfo.io/hostname)"
     org="$(wget -q -T10 -O- ipinfo.io/org)"
     city="$(wget -q -T10 -O- ipinfo.io/city)"
     country="$(wget -q -T10 -O- ipinfo.io/country)"
     region="$(wget -q -T10 -O- ipinfo.io/region)"
+    if [[ -n "${hostname}" ]]; then
+        echo " Hostname           : $(_blue "${hostname}")"
+    fi
     if [[ -n "${org}" ]]; then
         echo " Organization       : $(_blue "${org}")"
     fi
@@ -209,9 +218,7 @@ ipv4_info() {
     if [[ -n "${region}" ]]; then
         echo " Region             : $(_yellow "${region}")"
     fi
-    if [[ -z "${org}" ]]; then
-        echo " Region             : $(_red "No ISP detected")"
-    fi
+    
 }
 
 install_speedtest() {
@@ -248,13 +255,11 @@ install_speedtest() {
         mkdir -p speedtest-cli && tar zxf speedtest.tgz -C ./speedtest-cli && chmod +x ./speedtest-cli/speedtest
         rm -f speedtest.tgz
     fi
-    printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
 }
 
 print_intro() {
-    echo "-------------------- A Bench.sh Script By Teddysun -------------------"
-    echo " Version            : $(_green v2023-10-15)"
-    echo " Usage              : $(_red "wget -qO- bench.sh | bash")"
+    echo "----[ vps-bench.sh Script By Adam Jurkiewicz (based on Teddysun) ]----"
+    echo " Version            : $(_green 2024v1)"
 }
 
 # Get System information
@@ -384,7 +389,7 @@ print_io_test() {
         ioavg=$(awk 'BEGIN{printf "%.1f", '"$ioall"' / 3}')
         echo " I/O Speed(average) : $(_yellow "$ioavg MB/s")"
     else
-        echo " $(_red "Not enough space for I/O Speed test!")"
+        echo " $(_red "Not enough space for I/O Speed test! Need at least 1GB Free space")"
     fi
 }
 
@@ -402,19 +407,25 @@ print_end_time() {
     echo " Timestamp          : $date_time"
 }
 
+# start script
+
 ! _exists "wget" && _red "Error: wget command not found.\n" && exit 1
+! _exists "awk" && _red "Error: awk command not found.\n" && exit 1
 ! _exists "free" && _red "Error: free command not found.\n" && exit 1
+
 # check for curl/wget
 _exists "curl" && local_curl=true
+
 # test if the host has IPv4/IPv6 connectivity
 [[ -n ${local_curl} ]] && ip_check_cmd="curl -s -m 4" || ip_check_cmd="wget -qO- -T 4"
-ipv4_check=$( (ping -4 -c 1 -W 4 ipv4.google.com >/dev/null 2>&1 && echo true) || ${ip_check_cmd} -4 icanhazip.com 2> /dev/null)
-ipv6_check=$( (ping -6 -c 1 -W 4 ipv6.google.com >/dev/null 2>&1 && echo true) || ${ip_check_cmd} -6 icanhazip.com 2> /dev/null)
+ipv4_check=$( (ping -4 -c 1 -W 4 ipv4.google.com >/dev/null 2>&1 && echo true) || ${ip_check_cmd} -4 ipinfo.io/ip 2> /dev/null)
+ipv6_check=$( (ping -6 -c 1 -W 4 ipv6.google.com >/dev/null 2>&1 && echo true) || ${ip_check_cmd} -6 ipinfo.io/ip 2> /dev/null)
 if [[ -z "$ipv4_check" && -z "$ipv6_check" ]]; then
     _yellow "Warning: Both IPv4 and IPv6 connectivity were not detected.\n"
 fi
 [[ -z "$ipv4_check" ]] && online="$(_red "\xe2\x9c\x97 Offline")" || online="$(_green "\xe2\x9c\x93 Online")"
 [[ -z "$ipv6_check" ]] && online+=" / $(_red "\xe2\x9c\x97 Offline")" || online+=" / $(_green "\xe2\x9c\x93 Online")"
+
 start_time=$(date +%s)
 get_system_info
 check_virt
@@ -424,6 +435,12 @@ next
 print_system_info
 ipv4_info
 next
+
+if [ "$opsy" == "Not supported OS - EXIT!" ]; then
+    print_end_time
+    _exit
+fi
+
 print_io_test
 next
 install_speedtest && speed && rm -fr speedtest-cli
