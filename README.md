@@ -20,3 +20,7 @@ Bench Script based on https://github.com/teddysun/across/blob/master/bench.sh
     * `/etc/os-release`
     * `/etc/lsb-release`
     * if non of above exist, script reports "Not supported OS - EXIT!" and do `_exit`
+ 
+---
+Sample run:
+![Zrzut ekranu_20240805_153512](https://github.com/user-attachments/assets/b18362c7-29ae-4675-a137-abab92f6901e)
