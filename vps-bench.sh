@@ -15,6 +15,10 @@
 #
 trap _exit INT QUIT TERM
 
+script_version="2024 v2"
+# get "nearest" as a parameter
+param=$1
+
 _red() {
     printf '\033[0;31;31m%b\033[0m' "$1"
 }
@@ -81,16 +85,22 @@ speed_test() {
 }
 
 speed() {
-    # checking nearest 3 servers
-    output=$(./speedtest-cli/speedtest -L | tail -10 | head -3)
-    nearest_servers=$(echo "$output" | tail -10 | head -3 | awk '{print $1}')
-    _blue "Testing default Speedtest.net and nearest 3 servers: \n"
-    printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
-    speed_test '' 'Speedtest.net'
-    for server in $nearest_servers; do
-        name=$(echo "$output" | grep $server | awk '{print $2, $3}')
-        speed_test $server $name
-    done
+    if [ "$param" == "nearest" ]; then
+        # checking nearest 3 servers
+        output=$(./speedtest-cli/speedtest -L | tail -10 | head -3)
+        nearest_servers=$(echo "$output" | tail -10 | head -3 | awk '{print $1}')
+        _blue "Testing default Speedtest.net and nearest 3 servers: \n"
+        printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
+        speed_test '' 'Speedtest.net'
+        for server in $nearest_servers; do
+            name=$(echo "$output" | grep $server | awk '{print $2, $3}')
+            speed_test $server $name
+        done
+    else
+        _blue "Testing only default Speedtest.net: \n"
+        printf "%-18s%-18s%-20s%-12s\n" " Node Name" "Upload Speed" "Download Speed" "Latency"
+        speed_test '' 'Speedtest.net'
+    fi
 }
 
 
@@ -259,7 +269,7 @@ install_speedtest() {
 
 print_intro() {
     echo "----[ vps-bench.sh Script By Adam Jurkiewicz (based on Teddysun) ]----"
-    echo " Version            : $(_green 2024v1)"
+    echo " Version            : $(_green "$script_version")"
 }
 
 # Get System information
